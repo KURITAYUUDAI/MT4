@@ -1512,6 +1512,48 @@ Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle)
 	};
 }
 
+Matrix4x4 DirectionToDirection(const Vector3& from, const Vector3& to)
+{
+
+	float cos = Dot(from, to);
+	float sin = Length(Cross(from, to));
+
+	if (std::abs(cos + 1.0f) < 1e-6f) 
+	{
+		// 完全逆方向の場合
+		Vector3 axis = Perpendicular(from); // fromに直交する任意軸
+		axis = Normalize(axis);
+		return MakeRotateAxisAngle(axis, static_cast<float>(M_PI));
+	}
+	if (std::abs(cos - 1.0f) < 1e-6f) 
+	{
+		// 完全同方向の場合
+		return MakeIdentity4x4();
+	}
+
+	Vector3 n = Normalize(Cross(from, to));
+
+	return 
+	{
+		n.x * n.x * (1.0f - cos) + cos,
+		n.x * n.y * (1.0f - cos) + n.z * sin,
+		n.x * n.z * (1.0f - cos) - n.y * sin,
+		0.0f,
+
+		n.y * n.x * (1.0f - cos) - n.z * sin,
+		n.y * n.y * (1.0f - cos) + cos,
+		n.y * n.z * (1.0f - cos) + n.x * sin,
+		0.0f,
+		
+		n.z * n.x * (1.0f - cos) + n.y * sin,
+		n.z * n.y * (1.0f - cos) - n.x * sin,
+		n.z * n.z * (1.0f - cos) + cos,
+		0.0f,
+		
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
+}
+
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
@@ -1571,9 +1613,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	//bool start = false;
 
-	Vector3 axis = Normalize({1.0f, 1.0f, 1.0f});
-	float angle = 0.44f;
-	Matrix4x4 rotateMatrix;
+	Vector3 from0 = Normalize(Vector3{ 1.0f, 0.7f, 0.5f });
+	Vector3 to0 = -from0;
+	Vector3 from1 = Normalize(Vector3{ -0.6f, 0.9f, 0.2f });
+	Vector3 to1 = Normalize(Vector3{ 0.4f, 0.7f, -0.5f });
+	
 
 	//float  deltaTime = 1.0f / 60.0f;
 
@@ -1614,7 +1658,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-		rotateMatrix = MakeRotateAxisAngle(axis, angle);
+		Matrix4x4 rotateMatrix0 = DirectionToDirection(
+			Normalize(Vector3{ 1.0f, 0.0f, 0.0f }), Normalize(Vector3{ -1.0f, 0.0f, 0.0f }));
+		Matrix4x4 rotateMatrix1 = DirectionToDirection(from0, to0);
+		Matrix4x4 rotateMatrix2 = DirectionToDirection(from1, to1);
 
 		//if(start)
 		//{ 
@@ -1775,7 +1822,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓描画処理ここから
 		///
 		
-		MatrixScreenPrintf(0, 0, rotateMatrix, "rotateMatrix");
+		MatrixScreenPrintf(0, 0, rotateMatrix0, "rotateMatrix0");
+		MatrixScreenPrintf(0, kRowHeight * 5, rotateMatrix1, "rotateMatrix1");
+		MatrixScreenPrintf(0, kRowHeight * 10, rotateMatrix2, "rotateMatrix2");
 
 		/*DrawGrid(viewProjectionMatrix, viewportMatrix);
 
