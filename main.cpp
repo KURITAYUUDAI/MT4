@@ -730,6 +730,11 @@ bool IsCollision(const Sphere& sphere, const Plane& plane)
 	}
 }
 
+/// <summary>
+/// 直行する任意軸
+/// </summary>
+/// <param name="vector"></param>
+/// <returns></returns>
 Vector3 Perpendicular(const Vector3& vector)
 {
 	if (vector.x != 0.0f || vector.y != 0.0f)
@@ -1521,7 +1526,7 @@ Matrix4x4 DirectionToDirection(const Vector3& from, const Vector3& to)
 	if (std::abs(cos + 1.0f) < 1e-6f) 
 	{
 		// 完全逆方向の場合
-		Vector3 axis = Perpendicular(from); // fromに直交する任意軸
+		Vector3 axis = Perpendicular(from);
 		axis = Normalize(axis);
 		return MakeRotateAxisAngle(axis, static_cast<float>(M_PI));
 	}
