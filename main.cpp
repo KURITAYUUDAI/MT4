@@ -7,6 +7,8 @@
 
 #include <algorithm>
 #include <vector>
+#include <array>
+#include <string>
 
 const char kWindowTitle[] = "LE2B_07_クリタ_ユウダイ_タイトル";
 
@@ -1564,6 +1566,7 @@ struct Quaternion
 	float x, y, z, w;
 };
 
+
 void QuaternionScreenPrintf(int x, int y, const Quaternion& quaternion, const char* label)
 {
 	Novice::ScreenPrintf(x + 0 * kColumnWidth, y, "%6.02f", quaternion.x);
@@ -1642,6 +1645,39 @@ Quaternion Inverse(const Quaternion& quaternion)
 	};	
 }
 
+
+inline Quaternion operator+(const Quaternion& lhs, const Quaternion& rhs)
+{
+	return
+	{
+		lhs.x + rhs.x,
+		lhs.y + rhs.y,
+		lhs.z + rhs.z,
+		lhs.w + rhs.w,
+	};
+}
+
+inline Quaternion operator*(const Quaternion& lhs, const Quaternion& rhs)
+{
+	return Multiply(lhs, rhs);
+}
+
+inline Quaternion operator*(float scalar, const Quaternion& quaternion)
+{
+	return
+	{
+		scalar * quaternion.x,
+		scalar * quaternion.y,
+		scalar * quaternion.z,
+		scalar * quaternion.w
+	};
+}
+
+inline Quaternion operator*(const Quaternion& quaternion, float scalar)
+{
+	return scalar * quaternion;
+}
+
 // 任意軸回転を表すQuaternionの生成
 Quaternion MakeRotateAxisAngleQuaternion(const Vector3& axis, float angle)
 {
@@ -1691,6 +1727,34 @@ Matrix4x4 MakeRotateMatrix(const Quaternion& quaternion)
 		0.0f, 0.0f, 0.0f, 1.0f
 	};
 }
+
+float Dot(const Quaternion& q1, const Quaternion& q2)
+{
+	return q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w;
+}
+
+// 球面線形補間　使う前に必ず正規化を掛けること
+Quaternion Slerp(const Quaternion& q0, const Quaternion& q1, float t)
+{
+	Quaternion q = q0;
+	float dot = Dot(q0, q1);
+	if (dot < 0.0f)
+	{
+		q = { -q0.x, -q0.y, -q0.z, -q0.w };
+		dot = -dot;
+	}
+
+	float theta = std::acosf(dot);
+
+	float scale0 = std::sinf((1.0f - t) * theta) / std::sinf(theta);
+	float scale1 = std::sinf(t * theta) / std::sinf(theta);
+
+	return scale0 * q + scale1 * q1;
+}
+
+#include <numbers>
+
+static const float pi = std::numbers::pi_v<float>;
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -1766,12 +1830,25 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Quaternion mul2 = Multiply(q2, q1);
 	float norm = Norm(q1);*/
 
-	Quaternion rotation = MakeRotateAxisAngleQuaternion(
+	/*Quaternion rotation = MakeRotateAxisAngleQuaternion(
 		Normalize(Vector3{ 1.0f, 0.4f, -0.2f }), 0.45f);
 	Vector3 pointY = { 2.1f, -0.9f,  1.3f };
 	Matrix4x4 rotateMatrix = MakeRotateMatrix(rotation);
 	Vector3 rotateByQuaternion = RotateVector(pointY, rotation);
-	Vector3 rotateByMatrix = Transform(pointY, rotateMatrix);
+	Vector3 rotateByMatrix = Transform(pointY, rotateMatrix);*/
+
+	Quaternion rotation0 = MakeRotateAxisAngleQuaternion({0.71f, 0.71f, 0.0f}, 0.3f);
+	Quaternion rotation1 = MakeRotateAxisAngleQuaternion({0.71f, 0.0f, 0.71f}, pi);
+
+	std::array<Quaternion, 5> interpolate = {};
+	std::array<float, interpolate.size()> t = { 0.0f, 0.3f, 0.5f, 0.7f, 1.0f };
+	
+	for (int i = 0; i < interpolate.size(); ++i)
+	{
+		interpolate[i] = Slerp(rotation0, rotation1, t[i]);
+	}
+
+
 
 
 	//float  deltaTime = 1.0f / 60.0f;
@@ -1981,10 +2058,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		
 
-		QuaternionScreenPrintf(0, kRowHeight * 0, rotation, "rotation");
+		for (int i = 0; i < interpolate.size(); ++i)
+		{
+			std::string label = "interpolate" + std::to_string(i);
+
+			QuaternionScreenPrintf(0, kRowHeight * i, interpolate[i], label.c_str());
+		}
+
+		/*QuaternionScreenPrintf(0, kRowHeight * 0, rotation, "rotation");
 		MatrixScreenPrintf(0, kRowHeight * 1, rotateMatrix, "rotateMatrix");
 		VectorScreenPrintf(0, kRowHeight * 6, rotateByQuaternion, "   : rotateByQuaternion");
-		VectorScreenPrintf(0, kRowHeight * 7, rotateByMatrix, "   : rotateByMatrix");
+		VectorScreenPrintf(0, kRowHeight * 7, rotateByMatrix, "   : rotateByMatrix");*/
 
 
 		/*QuaternionScreenPrintf(0, 0, identity, "Identity");
